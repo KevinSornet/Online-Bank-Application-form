@@ -54,10 +54,9 @@ function doPost(e) {
     }
     if (!row) row = sh.getLastRow() + 1;
 
-    const out = headers.map(h => (h in values ? values[h] : ''));
-    sh.getRange(row, 1, 1, out.length)
-      .setNumberFormat('@')          // keep phone numbers' leading zeros; never run formulas
-      .setValues([out]);
+    // Text format keeps leading zeros; the apostrophe stops "=", "+", "-", "@" being read as formulas.
+    const out = headers.map(h => asText_(h in values ? values[h] : ''));
+    sh.getRange(row, 1, 1, out.length).setNumberFormat('@').setValues([out]);
 
     return json_({ ok: true, row: row });
   } catch (err) {
@@ -85,6 +84,11 @@ function saveSignature_(id, label, url) {
 function getFolder_() {
   const it = DriveApp.getFoldersByName(FOLDER_NAME);
   return it.hasNext() ? it.next() : DriveApp.createFolder(FOLDER_NAME);
+}
+
+function asText_(v) {
+  v = String(v);
+  return /^[=+\-@]/.test(v) ? "'" + v : v;
 }
 
 function json_(obj) {
