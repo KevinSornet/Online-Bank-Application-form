@@ -57,9 +57,12 @@ function doPost(e) {
     }
     if (!row) row = sh.getLastRow() + 1;
 
+    // Only write the form's own columns, so extra columns people add (e.g. Status) are left alone.
     // Text format keeps leading zeros; the apostrophe stops "=", "+", "-", "@" being read as formulas.
-    const out = headers.map(h => asText_(h in values ? values[h] : ''));
-    sh.getRange(row, 1, 1, out.length).setNumberFormat('@').setValues([out]);
+    headers.forEach((h, i) => {
+      if (!(h in values)) return;
+      sh.getRange(row, i + 1).setNumberFormat('@').setValue(asText_(values[h]));
+    });
 
     return json_({ ok: true, row: row });
   } catch (err) {
