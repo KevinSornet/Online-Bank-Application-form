@@ -48,6 +48,17 @@
   input, select { font: inherit; width: 100%; padding: 7px 9px; border: 1px solid var(--line);
     border-radius: 6px; background: var(--field); color: var(--ink); }
   input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  /* checkboxes and radios keep their own size (never stretched or squeezed away) */
+  input[type="checkbox"], input[type="radio"] { width: auto; padding: 0; flex: none; accent-color: var(--accent); }
+  label.toggle input { width: 18px; height: 18px; margin: 0; }
+  #saveStatus:empty { display: none; }
+  @media (max-width: 600px) {
+    header.bar { gap: 8px; padding: 8px 12px; }
+    header.bar h1 { flex: 1 1 auto; }
+    header.bar label.toggle { order: 1; flex: none; }
+    header.bar #saveStatus { order: 2; flex: 1 1 100%; }
+    header.bar button { order: 3; flex: 1 1 28%; min-width: 0; padding: 8px 6px; font-size: 13px; }
+  }
   .radios { display: flex; gap: 12px; flex-wrap: wrap; padding-top: 4px; }
   .radios label { display: flex; gap: 4px; align-items: center; }
   .radios input { width: auto; }
