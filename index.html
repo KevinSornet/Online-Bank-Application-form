@@ -32,7 +32,7 @@
   button { font: inherit; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--line);
     background: var(--field); color: var(--ink); cursor: pointer; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
-  label.toggle { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+  label.toggle { display: flex; gap: 6px; align-items: center; color: var(--muted); white-space: nowrap; }
 
   .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 16px; }
   @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
@@ -170,16 +170,16 @@ const SECTIONS = [
   { title: 'Bank account references', table: true, cols: ['Bank name', 'Branch', 'Account type'], fields: [0, 1, 2].flatMap(i => {
     const y = 1437 + i * 22;
     return [
-      { k: `b${i}_name`, label: 'Bank name', pos: [56, y, 305], c: true },
-      { k: `b${i}_branch`, label: 'Branch', pos: [370, y, 376], c: true },
-      { k: `b${i}_type`, label: 'Account type', pos: [754, y, 400], c: true, list: ['Savings', 'Checking', 'Time deposit'] },
+      { k: `b${i}_name`, label: `Bank ${i + 1} name`, pos: [56, y, 305], c: true },
+      { k: `b${i}_branch`, label: `Bank ${i + 1} branch`, pos: [370, y, 376], c: true },
+      { k: `b${i}_type`, label: `Bank ${i + 1} account type`, pos: [754, y, 400], c: true, list: ['Savings', 'Checking', 'Time deposit'] },
     ];
   })},
   { title: 'Trade references', table: true, cols: ['Name of trade / contact person', 'Contact number / address'], fields: [0, 1, 2].flatMap(i => {
     const y = 1558 + i * 22;
     return [
-      { k: `t${i}_name`, label: 'Name', pos: [56, y, 500], c: true },
-      { k: `t${i}_contact`, label: 'Contact', pos: [564, y, 590], c: true },
+      { k: `t${i}_name`, label: `Trade ${i + 1} name / contact person`, pos: [56, y, 500], c: true },
+      { k: `t${i}_contact`, label: `Trade ${i + 1} contact number / address`, pos: [564, y, 590], c: true },
     ];
   })},
   { title: 'Signature names', note: 'Printed above the signature lines. Leave blank to use the marketing professional and applicant names.', fields: [
@@ -459,6 +459,7 @@ document.getElementById('clear').addEventListener('click', () => {
   form.reset();
   pads.forEach(p => { p.wipe(); p.show(); });
   renderBranch();
+  if (window.onFormCleared) window.onFormCleared();
   ALL.filter(f => f.today).forEach(f => form.elements[f.k].value = new Date().toISOString().slice(0, 10));
   ALL.filter(f => f.def).forEach(f => form.elements[f.k].value = f.def);
   readForm(); render();
@@ -474,5 +475,7 @@ document.getElementById('print').addEventListener('click', () => {
 readForm();
 document.getElementById('bg').complete ? render() : document.getElementById('bg').addEventListener('load', render);
 </script>
+<script src="config.js"></script>
+<script src="sheet-save.js"></script>
 </body>
 </html>
