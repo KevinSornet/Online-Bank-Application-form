@@ -6,12 +6,14 @@
  * Copy the web app URL into config.js on the website.
  *
  * Each Save from the form writes one row. Saving the same application again
- * updates its row instead of adding a new one. Signatures are stored as PNG
- * files in a Drive folder, and the sheet links to them.
+ * updates its row instead of adding a new one. Signatures (PNG) and a PDF of
+ * the filled form are stored in Drive folders, and the sheet links to them.
  */
 
 const SHEET_NAME = 'Applications';
 const FOLDER_NAME = 'Bank Application Signatures';
+const PDF_FOLDER_NAME = 'Bank Application PDFs';
+const MAX_PDF = 20000000; // characters of base64 (~15 MB)
 const MAX_FIELDS = 400;
 const MAX_VALUE = 2000;
 const MAX_SIGNATURE = 400000; // characters of base64
@@ -31,6 +33,7 @@ function doPost(e) {
     };
     p.fields.forEach(([h, v]) => { values[String(h).slice(0, 200)] = String(v == null ? '' : v).slice(0, MAX_VALUE); });
     Object.entries(p.signatures || {}).forEach(([h, url]) => { values[String(h).slice(0, 200)] = saveSignature_(p.id, h, url); });
+    if (p.pdf) values['Saved PDF'] = savePdf_(p.id, p.applicant, p.pdf);
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
@@ -81,9 +84,23 @@ function saveSignature_(id, label, url) {
   return folder.createFile(blob).getUrl();
 }
 
-function getFolder_() {
-  const it = DriveApp.getFoldersByName(FOLDER_NAME);
-  return it.hasNext() ? it.next() : DriveApp.createFolder(FOLDER_NAME);
+function savePdf_(id, applicant, b64) {
+  b64 = String(b64 || '');
+  if (!b64 || b64.length > MAX_PDF || !/^[A-Za-z0-9+/=]+$/.test(b64)) return '';
+  const folder = getFolder_(PDF_FOLDER_NAME);
+  const tag = id.slice(0, 8);
+  const old = folder.searchFiles("title contains '" + tag + "'");
+  while (old.hasNext()) old.next().setTrashed(true);   // replace the earlier PDF of this application
+  const who = String(applicant || 'Application').replace(/[^\w ,.\-ñÑ]/g, '').slice(0, 80);
+  const blob = Utilities.newBlob(Utilities.base64Decode(b64), 'application/pdf',
+    'Bank Application - ' + who + ' - ' + tag + '.pdf');
+  return folder.createFile(blob).getUrl();
+}
+
+function getFolder_(name) {
+  name = name || FOLDER_NAME;
+  const it = DriveApp.getFoldersByName(name);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(name);
 }
 
 function asText_(v) {

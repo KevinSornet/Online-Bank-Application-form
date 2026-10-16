@@ -8,7 +8,7 @@ Fill in the Nissan bank application in the browser, sign it on screen, save it t
 1. Pick the dealer branch at the top of the form.
 2. Fill in the fields. The preview on the right shows exactly what will print.
 3. Sign in the E-signatures pads.
-4. Click **Save to Sheet** to store the application in the Google Sheet. Saving again updates the same row.
+4. Click **Save to Sheet** to store the application and a PDF copy in Google Drive. Saving again updates the same row.
 5. Click **Print / Save PDF** and choose "Save as PDF" (paper size: Legal).
 6. Click **Clear** before starting the next client. The next save then makes a new row.
 
@@ -30,5 +30,6 @@ If you change `Code.gs` later, use **Deploy → Manage deployments → Edit → 
 ## Where the data goes
 - Each application is one row in the **Applications** tab, one column per field.
 - Signatures are saved as PNG files in a Drive folder called **Bank Application Signatures**, and the sheet links to them.
+- Each save also makes a PDF of the filled form in a Drive folder called **Bank Application PDFs**. The **Saved PDF** column links to it. Saving again replaces that application's PDF.
 - Only people you share the sheet with can read it. The web app can only add or update rows; it never sends sheet data back to the page.
 - Anyone who finds the page could still send junk rows, since the web app accepts saves from anyone. Keep the page link within your team.
