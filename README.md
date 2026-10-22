@@ -33,10 +33,10 @@ Fill out a client's bank application on your computer, phone or tablet, let them
 The names printed under the signature lines come from the **Signature names** section. If you leave those blank, the form uses your name and the applicant's name.
 
 ### Save it
-Click **Save to Sheet** at the top. It says *Making PDF…*, then *Saving…*, then **Saved to sheet (row __)**.
+Click **Save to Sheet** at the top. It says *Making PDF…*, then *Saving…*. A message then pops up: **✅ Saved** (with the sheet row number) or **❌ Not saved** (with the reason).
 
 - Changed something after saving? Just click **Save to Sheet** again. It updates the same application. It does **not** make a duplicate.
-- If you see **Save failed**, check your internet connection and try again. Your details stay on the form, so nothing is lost.
+- If you see **❌ Not saved**, check your internet connection and try again. Your details stay on the form, so nothing is lost.
 
 ### Print or download a copy
 Click **Print / Save PDF**. In the print window:

@@ -117,6 +117,83 @@
     return { id, branch: 'Nissan ' + branch.name, fields, signatures };
   }
 
+  /* ---------- Result popup ---------- */
+  const css = document.createElement('style');
+  css.textContent = `
+    .save-pop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+      padding: 16px; background: rgba(0,0,0,.45); }
+    .save-pop > div { width: 100%; max-width: 360px; padding: 20px; border-radius: 12px; background: var(--panel);
+      color: var(--ink); box-shadow: 0 10px 40px rgba(0,0,0,.35); text-align: center; }
+    .save-pop h2 { margin: 0 0 8px; font-size: 18px; }
+    .save-pop p { margin: 0 0 16px; color: var(--muted); }
+    .save-pop button { min-width: 120px; }`;
+  document.head.append(css);
+
+  function popup(ok, msg) {
+    const close = () => pop.remove();
+    const okBtn = el('button', { type: 'button', class: 'primary', text: 'OK' });
+    okBtn.addEventListener('click', close);
+    const pop = el('div', { class: 'save-pop', role: 'alertdialog', 'aria-modal': 'true' }, [el('div', {}, [
+      el('h2', { text: ok ? '✅ Saved' : '❌ Not saved' }),
+      el('p', { text: msg }),
+      okBtn,
+    ])]);
+    pop.addEventListener('click', e => { if (e.target === pop) close(); });
+    document.body.append(pop);
+    okBtn.focus();
+  }
+
+  /* ---------- Sending ---------- */
+  const TIMEOUT = 90000;
+
+  async function post(body, opts) {
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), TIMEOUT);
+    try {
+      return await fetch(url, { method: 'POST', body, signal: ctl.signal,
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // simple request: no CORS preflight
+        ...opts });
+    } finally { clearTimeout(t); }
+  }
+
+  // Ask the web app (JSONP, which Safari allows) which row a save landed in.
+  function check(token) {
+    return new Promise(done => {
+      const cb = 'saveCheck_' + token.replace(/\W/g, '');
+      const s = document.createElement('script');
+      const end = v => { clearTimeout(t); delete window[cb]; s.remove(); done(v); };
+      const t = setTimeout(() => end(null), 20000);
+      window[cb] = end;
+      s.onerror = () => end(null);
+      s.src = `${url}?check=${encodeURIComponent(token)}&callback=${cb}`;
+      document.head.append(s);
+    });
+  }
+
+  // Safari (iPhone, iPad, Mac) often blocks reading the Apps Script reply because it
+  // comes back through a redirect. The save itself still goes through, so when the
+  // normal request fails we resend it without reading the reply and then ask the sheet.
+  async function send(body) {
+    const json = JSON.stringify(body);
+    try {
+      const res = await post(json);
+      const out = await res.json();
+      if (!out.ok) throw Object.assign(new Error(out.error || 'Save failed'), { server: true });
+      return out.row;
+    } catch (err) {
+      if (err.server || err.name === 'AbortError') throw err;
+    }
+    await post(json, { mode: 'no-cors' });
+    const out = await check(body.token);
+    if (!out || !out.ok) throw new Error("the sheet didn't confirm the save");
+    return out.row;
+  }
+
+  function reason(err) {
+    if (err.name === 'AbortError') return 'The sheet took too long to answer.';
+    if (err instanceof TypeError && /fetch|load|network/i.test(err.message)) return "Couldn't reach the sheet. Check your internet connection.";
+    return err.message.charAt(0).toUpperCase() + err.message.slice(1) + '.';
+  }
+
   btn.addEventListener('click', async () => {
     if (!url) { say('Sheet not connected yet — add the web app URL to config.js', true); return; }
     btn.disabled = true;
@@ -124,18 +201,15 @@
     try {
       const body = payload();
       body.applicant = (data.a_name || '').trim();
+      body.token = newId();
       body.pdf = await makePdf();
       say('Saving…');
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // simple request: no CORS preflight
-        body: JSON.stringify(body),
-      });
-      const out = await res.json();
-      if (!out.ok) throw new Error(out.error || 'Save failed');
-      say(`Saved to sheet (row ${out.row}) at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
+      const row = await send(body);
+      say(`Saved to sheet (row ${row}) at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
+      popup(true, `The application was saved to the sheet (row ${row}) with its PDF.`);
     } catch (err) {
-      say('Save failed: ' + err.message, true);
+      say('Save failed: ' + reason(err), true);
+      popup(false, reason(err) + ' Your details are still on the form. Tap Save to Sheet to try again — it won\'t make a duplicate.');
     } finally {
       btn.disabled = false;
     }

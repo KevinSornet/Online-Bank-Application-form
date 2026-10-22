@@ -171,7 +171,7 @@ const SECTIONS = [
   { title: 'Unit applied', fields: [
     { k: 'unit', label: 'Unit / model', pos: [225, 393, 410], wide: true },
     { k: 'price', label: 'Selling price', pos: [225, 414, 295] },
-    { k: 'dp', label: 'Downpayment', pos: [935, 394, 165] },
+    { k: 'dp', label: 'Downpayment (%)', type: 'number', min: '0', max: '100', step: 'any', pos: [935, 394, 165] },
     { k: 'terms', label: 'Terms (months)', pos: [935, 415, 160], list: ['12', '24', '36', '48', '60'] },
   ]},
   applicant,
@@ -233,12 +233,15 @@ function input(f) {
     return s;
   }
   const i = el('input', { name: f.k, type: f.type || 'text' });
+  if (f.min !== undefined) i.setAttribute('min', f.min);
+  if (f.max !== undefined) i.setAttribute('max', f.max);
+  if (f.step !== undefined) i.setAttribute('step', f.step);
   if (f.list) {
     const id = 'dl_' + f.k;
     i.setAttribute('list', id);
     form.append(el('datalist', { id }, f.list.map(v => el('option', { value: v }))));
   }
-  if (f.k.includes('income') || ['price', 'dp'].includes(f.k)) i.setAttribute('inputmode', 'decimal');
+  if (f.k.includes('income') || f.k === 'price') i.setAttribute('inputmode', 'decimal');
   i.value = data[f.k] ?? (f.today ? new Date().toISOString().slice(0, 10) : (f.def || ''));
   return i;
 }
@@ -302,7 +305,7 @@ function ageFrom(v) {
   if (n < new Date(n.getFullYear(), b.getMonth(), b.getDate())) a--;
   return a >= 0 && a < 130 ? String(a) : '';
 }
-const money = k => k.includes('income') || ['price', 'dp'].includes(k);
+const money = k => k.includes('income') || k === 'price';
 function fmtMoney(v) {
   const n = Number(String(v).replace(/[^\d.]/g, ''));
   if (!v || isNaN(n) || /[a-z]/i.test(v)) return v;
@@ -326,6 +329,7 @@ function render() {
       let t = v;
       if (f.type === 'date') t = mdy(v);
       if (money(f.k)) t = fmtMoney(v);
+      if (f.k === 'dp' && v) t = `${v}%`;
       if (!t && f.fallback) t = data[f.fallback] || '';
       o.textContent = t;
       fit(o);

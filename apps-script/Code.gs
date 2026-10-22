@@ -64,6 +64,9 @@ function doPost(e) {
       sh.getRange(row, i + 1).setNumberFormat('@').setValue(asText_(values[h]));
     });
 
+    // Remember where this save landed so the form can confirm it (see doGet).
+    if (/^[0-9a-f-]{36}$/i.test(p.token || '')) CacheService.getScriptCache().put('save:' + p.token, String(row), 21600);
+
     return json_({ ok: true, row: row });
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message || err) });
@@ -72,7 +75,16 @@ function doPost(e) {
   }
 }
 
-function doGet() {
+// ?check=<token>&callback=<name> answers (as JSONP) whether that save reached the sheet.
+// Safari can't read the POST reply, so the form asks here instead.
+function doGet(e) {
+  const q = (e && e.parameter) || {};
+  if (q.check && /^[A-Za-z_]\w{0,60}$/.test(q.callback || '')) {
+    const row = /^[0-9a-f-]{36}$/i.test(q.check) ? CacheService.getScriptCache().get('save:' + q.check) : null;
+    const out = row ? { ok: true, row: Number(row) } : { ok: false };
+    return ContentService.createTextOutput(q.callback + '(' + JSON.stringify(out) + ');')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
   return json_({ ok: true, message: 'Bank application endpoint is running.' });
 }
 
