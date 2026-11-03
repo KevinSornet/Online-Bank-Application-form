@@ -91,7 +91,7 @@
     background: #fff; box-shadow: 0 2px 14px rgba(0,0,0,.18); overflow: hidden; }
   .sheet img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   .sheet .f { position: absolute; transform: translateY(-50%); white-space: nowrap; overflow: hidden;
-    color: #0b2a8a; font-family: Arial, Helvetica, sans-serif; font-size: 1.07cqw; line-height: 1.25; }
+    color: #0b2a8a; font-family: Arial, Helvetica, sans-serif; font-size: var(--fs, 1.07cqw); line-height: 1.25; }
   .sheet.caps .f:not(.nocaps) { text-transform: uppercase; }
   .sheet .f.c { text-align: center; }
   .sheet .mark { position: absolute; transform: translate(-50%, -50%); width: 1.25cqw; height: 1.25cqw;
@@ -114,7 +114,7 @@
   <h1>Bank Application</h1>
   <label class="toggle"><input type="checkbox" id="caps" checked> ALL CAPS</label>
   <button type="button" id="clear">Clear</button>
-  <button type="button" id="print" class="primary">Print / Save PDF</button>
+  <button type="button" id="print">Print / Save PDF</button>
 </header>
 
 <div class="wrap">
@@ -142,7 +142,7 @@ function person(p, label, y) {
     { k: p+'contact', label: 'Contact no.', pos: [912, y.rel, 240] },
   );
   f.push(
-    { k: p+'src', label: 'Source of income', pos: [200, y.src, 950], list: ['Employed', 'Self-employed / Business', 'OFW', 'Pension', 'Remittance'] },
+    { k: p+'src', label: 'Source of income', pos: [200, y.src, 950], pick: ['Employed', 'Self-employed / Business', 'OFW', 'Pension', 'Remittance'] },
     { k: p+'emp', label: 'Employer / business name', pos: [290, y.emp, 480] },
     { k: p+'income', label: 'Monthly income', pos: [955, y.emp, 200] },
     { k: p+'eaddr', label: 'Employer / business address', pos: [150, y.addr, 555], wide: true },
@@ -241,6 +241,7 @@ function input(f) {
     s.value = data[f.k] ?? '';
     return s;
   }
+  if (f.pick) return picker(f);
   const i = el('input', { name: f.k, type: f.type || 'text' });
   if (f.min !== undefined) i.setAttribute('min', f.min);
   if (f.max !== undefined) i.setAttribute('max', f.max);
@@ -253,6 +254,26 @@ function input(f) {
   if (f.k.includes('income') || f.k === 'price') i.setAttribute('inputmode', 'decimal');
   i.value = data[f.k] ?? (f.today ? new Date().toISOString().slice(0, 10) : (f.def || ''));
   return i;
+}
+
+// A real dropdown, plus a text box for anything not listed. The text box holds the value that gets saved.
+function picker(f) {
+  const OTHER = 'Other (type it below)';
+  const saved = data[f.k] ?? '';
+  const known = f.pick.find(o => o.toLowerCase() === saved.trim().toLowerCase());
+  const s = el('select', {}, ['', ...f.pick, OTHER].map(o => el('option', { value: o, text: o || '—' })));
+  const i = el('input', { name: f.k, type: 'text', placeholder: 'Type the ' + f.label.toLowerCase() });
+  s.value = !saved ? '' : known || OTHER;
+  i.value = known || saved;
+  i.hidden = s.value !== OTHER;
+  s.addEventListener('change', () => {
+    i.hidden = s.value !== OTHER;
+    i.value = i.hidden ? s.value : '';
+    i.dispatchEvent(new Event('input', { bubbles: true }));
+    if (!i.hidden) i.focus();
+  });
+  form.addEventListener('reset', () => { i.hidden = true; });
+  return el('div', { class: 'fld' }, [s, i]);
 }
 
 SECTIONS.forEach(s => {
@@ -298,13 +319,19 @@ ALL.forEach(f => {
   }
 });
 
-function fit(d) {
-  let size = 1.07;
-  d.style.fontSize = size + 'cqw';
-  while (d.scrollWidth > d.clientWidth + 1 && size > 0.6) {
-    size -= 0.04;
-    d.style.fontSize = size + 'cqw';
-  }
+// One text size for the whole form: the largest at which every field fits.
+const BASE_SIZE = 1.07, MIN_SIZE = 0.6;
+function fitAll() {
+  sheet.style.setProperty('--fs', BASE_SIZE + 'cqw');
+  const r = document.createRange();
+  let k = 1;
+  sheet.querySelectorAll('.f').forEach(d => {
+    if (!d.textContent) return;
+    r.selectNodeContents(d);
+    const w = r.getBoundingClientRect().width;
+    if (w) k = Math.min(k, d.getBoundingClientRect().width / w);
+  });
+  if (k < 1) sheet.style.setProperty('--fs', Math.max(MIN_SIZE, BASE_SIZE * k * 0.99) + 'cqw');
 }
 const mdy = v => { const [y, m, d] = v.split('-'); return v ? `${m}/${d}/${y}` : ''; };
 function ageFrom(v) {
@@ -341,9 +368,9 @@ function render() {
       if (f.k === 'dp' && v) t = `${v}%`;
       if (!t && f.fallback) t = data[f.fallback] || '';
       o.textContent = t;
-      fit(o);
     }
   });
+  fitAll();
 }
 
 /* ---------- branch header ---------- */

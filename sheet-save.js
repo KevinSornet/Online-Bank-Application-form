@@ -13,7 +13,7 @@
 
   function setId(v) { id = v; try { localStorage.setItem(IDKEY, v); } catch (e) {} }
 
-  const btn = el('button', { type: 'button', id: 'save', text: 'Save to Sheet' });
+  const btn = el('button', { type: 'button', id: 'save', class: 'primary', text: 'Save to Sheet' });
   const status = el('span', { id: 'saveStatus' });
   status.style.cssText = 'font-size:12px;color:var(--muted);';
   const clearBtn = document.getElementById('clear');
