@@ -50,7 +50,7 @@
     const svg = sheet.querySelector('svg.brand');
     if (svg) svg.querySelectorAll('rect').forEach(r => {
       if (r.closest('g') && !visible(r.closest('g'))) return;
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = r.getAttribute('fill');
       ctx.fillRect(+r.getAttribute('x') * u, +r.getAttribute('y') * u, +r.getAttribute('width') * u, +r.getAttribute('height') * u);
     });
     const title = svg && svg.querySelector('#bTitle');
@@ -63,6 +63,13 @@
       ctx.save(); ctx.translate(x, y); if (wd > max) ctx.scale(max / wd, 1);
       ctx.fillText(t.textContent, 0, 0); ctx.restore();
     }
+
+    // Bank table headers (the added Account number column)
+    if (svg) svg.querySelectorAll('#bankCols text').forEach(t => {
+      ctx.font = `${+t.getAttribute('font-size') * u}px Arial, Helvetica, sans-serif`;
+      ctx.fillStyle = t.getAttribute('fill'); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      ctx.fillText(t.textContent, +t.getAttribute('x') * u, +t.getAttribute('y') * u);
+    });
 
     // Typed text
     sheet.querySelectorAll('.f').forEach(n => {
