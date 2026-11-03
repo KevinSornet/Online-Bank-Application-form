@@ -11,7 +11,7 @@ Fill out a client's bank application on your computer, phone or tablet, let them
 ### Start a new application
 1. Open the form link above.
 2. If someone else's details are still on the form, click **Clear** first.
-3. At the top, pick your **Dealer branch** (Alabang, Calamba, Carmona, Dasmariñas, Sta. Rosa or Sucat). The form header changes to match. The form remembers your branch next time.
+3. At the top, pick your **Dealer branch** (Alabang, Calamba, Carmona, Dasmariñas, Las Piñas, Sta. Rosa or Sucat). The form header changes to match. The form remembers your branch next time.
 
 ### Fill in the details
 - Type into the boxes on the left. The **preview** on the right shows the real form filling in as you type. What you see there is what gets saved and printed.
