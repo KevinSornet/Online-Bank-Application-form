@@ -129,6 +129,19 @@
 /* Coordinates are in pixels of the 1214×2000 source image: [x, y-center, width]. */
 const W = 1214, H = 2000;
 
+const CIVIL = ['', 'Single', 'Married', 'Widowed', 'Separated', 'Not legally separated'];
+const RELATIONS = ['Spouse', 'Common law', 'Ex-spouse', 'Parent', 'Child', 'Sibling', 'Relative'];
+const UNITS = [
+  'Nissan Almera VE AT',
+  'Nissan Kicks VE', 'Nissan Kicks LE',
+  'Nissan Livina 1.5 VE AT', 'Nissan Livina 1.5 VL AT',
+  'Nissan Navara 2.5 VE 4x2 AT', 'Nissan Navara 2.5 Pro-4X 4x4 AT', 'Nissan Navara Pro Plug-in Hybrid LE',
+  'Nissan Patrol 3.5 V6 Twin Turbo 4x4 AT',
+  'Nissan Terra 2.5 VE 4x2 AT',
+  'Nissan Urvan Premium AT', 'Nissan Urvan Premium MT', 'Nissan Urvan Standard 15-seater', 'Nissan Urvan Standard Plus',
+  'Nissan X-Trail',
+];
+
 function person(p, label, y) {
   // y = { name, rel, src, emp, addr, mob }
   const f = [
@@ -137,8 +150,8 @@ function person(p, label, y) {
     { k: p+'age', label: 'Age', pos: [797, y.name, 44], c: true },
   ];
   if (y.rel) f.push(
-    { k: p+'rel', label: 'Relationship to applicant', pos: [243, y.rel, 265] },
-    { k: p+'civil', label: 'Civil status', pos: [602, y.rel, 210], opts: ['', 'Single', 'Married', 'Widowed', 'Separated'] },
+    { k: p+'rel', label: 'Relationship to applicant', pos: [243, y.rel, 265], pick: RELATIONS },
+    { k: p+'civil', label: 'Civil status', pos: [602, y.rel, 210], opts: CIVIL },
     { k: p+'contact', label: 'Contact no.', pos: [912, y.rel, 240] },
   );
   f.push(
@@ -164,7 +177,7 @@ applicant.fields.splice(3, 0,
   { k: 'a_res', label: 'Residence', type: 'radio', opts: { 'Owned': [394, 552], 'Used free': [526, 552], 'Renting': [665, 552] } },
   { k: 'a_email', label: 'Email address', pos: [165, 580, 355], nocaps: true, type: 'email' },
   { k: 'a_nat', label: 'Nationality', pos: [620, 579, 195], def: 'Filipino' },
-  { k: 'a_civil', label: 'Civil status', pos: [912, 580, 240], opts: ['', 'Single', 'Married', 'Widowed', 'Separated'] },
+  { k: 'a_civil', label: 'Civil status', pos: [912, 580, 240], opts: CIVIL },
   { k: 'a_tin', label: 'TIN no.', pos: [110, 606, 295] },
   { k: 'a_mmn', label: "Mother's maiden name", pos: [583, 605, 570] },
 );
@@ -177,7 +190,8 @@ const SECTIONS = [
     { k: 'purpose', label: 'Loan purpose', pos: [935, 342, 220], list: ['Personal use', 'Business use'] },
   ]},
   { title: 'Unit applied', fields: [
-    { k: 'unit', label: 'Unit / model', pos: [225, 393, 410], wide: true },
+    { k: 'unit', label: 'Unit / model', pos: [225, 393, 410], wide: true, pick: UNITS, edit: true,
+      placeholder: 'Pick a unit above, then add the colour if needed' },
     { k: 'price', label: 'Selling price', pos: [225, 414, 295] },
     { k: 'dp', label: 'Downpayment (%)', type: 'number', min: '0', max: '100', step: 'any', pos: [935, 394, 165] },
     { k: 'terms', label: 'Terms (months)', pos: [935, 415, 160], list: ['12', '24', '36', '48', '60', '72', '84'] },
@@ -257,22 +271,30 @@ function input(f) {
 }
 
 // A real dropdown, plus a text box for anything not listed. The text box holds the value that gets saved.
+// With f.edit the text box always shows, so the picked value can be added to (e.g. a unit's colour).
 function picker(f) {
   const OTHER = 'Other (type it below)';
-  const saved = data[f.k] ?? '';
-  const known = f.pick.find(o => o.toLowerCase() === saved.trim().toLowerCase());
-  const s = el('select', {}, ['', ...f.pick, OTHER].map(o => el('option', { value: o, text: o || '—' })));
-  const i = el('input', { name: f.k, type: 'text', placeholder: 'Type the ' + f.label.toLowerCase() });
-  s.value = !saved ? '' : known || OTHER;
-  i.value = known || saved;
-  i.hidden = s.value !== OTHER;
-  s.addEventListener('change', () => {
+  const saved = data[f.k] ?? '', low = saved.trim().toLowerCase();
+  const known = f.pick.find(o => o.toLowerCase() === low);
+  const opts = f.edit ? ['', ...f.pick] : ['', ...f.pick, OTHER];
+  const s = el('select', {}, opts.map(o => el('option', { value: o, text: o || '—' })));
+  const i = el('input', { name: f.k, type: 'text', placeholder: f.placeholder || 'Type the ' + f.label.toLowerCase() });
+  if (f.edit) {
+    s.value = f.pick.filter(o => low.startsWith(o.toLowerCase())).sort((a, b) => b.length - a.length)[0] || '';
+    i.value = saved;
+  } else {
+    s.value = !saved ? '' : known || OTHER;
+    i.value = known || saved;
     i.hidden = s.value !== OTHER;
-    i.value = i.hidden ? s.value : '';
+  }
+  s.addEventListener('change', () => {
+    const other = s.value === OTHER;
+    if (!f.edit) i.hidden = !other;
+    i.value = other ? '' : s.value;
     i.dispatchEvent(new Event('input', { bubbles: true }));
-    if (!i.hidden) i.focus();
+    if (other) i.focus();
   });
-  form.addEventListener('reset', () => { i.hidden = true; });
+  form.addEventListener('reset', () => { i.hidden = !f.edit; });
   return el('div', { class: 'fld' }, [s, i]);
 }
 
